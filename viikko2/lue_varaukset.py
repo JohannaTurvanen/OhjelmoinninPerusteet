@@ -20,47 +20,21 @@ def main():
     # Määritellään tiedoston nimi suoraan koodissa
     varaukset = "varaukset.txt"
 
-    # Avataan tiedosto ja luetaan sisältö
-    with open(varaukset, "r", encoding="utf-8") as f:
-        varaus = f.read().strip()
-
-    #tietojen jako
-    varausId = varaus.split('|')
-
-    #päivämäärän tuonti
     from datetime import datetime
 
-    #tietotyyppien määritys
-    varausId = int(varausId[0])
-    varausId = str(varausId[1])
-    #muunnetaan päivämäärät ja kellonajat
-    varausId[2] = datetime.strptime(varausId[2], "%d.%m.%Y").date()
-    varausId[3] = datetime.strptime(varausId[3], "%H.%M").time()
-    varausId[4] = int(varausId[4])      
-    varausId[5] = float(varausId[5])
-    #lasketaan kokonaishinta
-    varausId[6] = varausId[4] * varausId[5]
-    #lisätään listaan
-    varausId.insert(6, varausId[6])
-    #IF/ELSE lauseke 
-    varausId[7] = "Kyllä" if varausId[7] == "1" else "Ei"
-    varausId[8] = str(varausId[8])
-    varausId[9] = str(varausId[9])  
-    varausId[10] = str(varausId[10])
+    try:
+        with open(varaukset, "r", encoding="utf-8") as f:
+            lines = [line.strip() for line in f if line.strip()]
+    except FileNotFoundError:
+        print(f"Tiedostoa '{varaukset}' ei löydy. Varmista että tiedosto on samassa kansiossa.")
+        return
 
-    #tendään kopio ID listoista ja lisätään euron merkit tulosteeseen
-    tuloste - varausId.copy()
-
-    tuloste[5] = f"{tuloste[5]} €"
-    tuloste[6] = f"{tuloste[6]} €"
-
-    #otsikot
     otsikot = [
-        "Varausnumero:", 
-        "Varaaja:", 
-        "Päivämäärä:", 
-        "Aloitusaika:", 
-        "Tuntimäärä:", 
+        "Varausnumero:",
+        "Varaaja:",
+        "Päivämäärä:",
+        "Aloitusaika:",
+        "Tuntimäärä:",
         "Tuntihinta:",
         "Kokonaishinta:",
         "Maksettu:",
@@ -69,7 +43,79 @@ def main():
         "Sähköposti:"
     ]
 
-    # Tulostetaan varaus konsoliin
+    for line in lines:
+        parts = [p.strip() for p in line.split("|")]
+        if len(parts) < 10:
+            print(f"Virheellinen rivi (odotettiin vähintään 10 kenttää): {line}")
+            continue
+
+        # Parsitaan kentät
+        try:
+            varausnumero = int(parts[0])
+        except ValueError:
+            varausnumero = parts[0]
+
+        varaaja = parts[1]
+
+        # päivämäärän ja ajan parsinta: yritetään useampaa formaattia
+        try:
+            paiva = datetime.strptime(parts[2], "%Y-%m-%d").date()
+        except ValueError:
+            try:
+                paiva = datetime.strptime(parts[2], "%d.%m.%Y").date()
+            except ValueError:
+                paiva = parts[2]
+
+        try:
+            alku = datetime.strptime(parts[3], "%H:%M").time()
+        except ValueError:
+            try:
+                alku = datetime.strptime(parts[3], "%H.%M").time()
+            except ValueError:
+                alku = parts[3]
+
+        try:
+            tuntimaara = int(parts[4])
+        except ValueError:
+            tuntimaara = parts[4]
+
+        try:
+            tunttihinta = float(parts[5])
+        except ValueError:
+            tunttihinta = parts[5]
+
+        # maksettu-kenttä: hyväksytään '1', 'true', 'yes' jne.
+        maksettu_raw = parts[6].strip().lower()
+        maksettu = "Kyllä" if maksettu_raw in ("1", "true", "t", "yes", "y") else "Ei"
+
+        kohde = parts[7]
+        puhelin = parts[8]
+        sahkoposti = parts[9]
+
+        # lasketaan kokonaishinta jos numerot kunnossa
+        try:
+            kokonaishinta = float(tuntimaara) * float(tunttihinta)
+        except Exception:
+            kokonaishinta = "-"
+
+        arvot = [
+            varausnumero,
+            varaaja,
+            paiva,
+            alku,
+            tuntimaara,
+            f"{tunttihinta:.2f} €" if isinstance(tunttihinta, float) else tunttihinta,
+            f"{kokonaishinta:.2f} €" if isinstance(kokonaishinta, float) else kokonaishinta,
+            maksettu,
+            kohde,
+            puhelin,
+            sahkoposti,
+        ]
+
+        # Tulostetaan siistissä muodossa
+        for otsikko, arvo in zip(otsikot, arvot):
+            print(f"{otsikko} {arvo}")
+        print()
 
 
 
@@ -80,12 +126,8 @@ def main():
     #print(varausId)
     #print(type(varausId))
     """
-    Edellisen olisi pitänyt tulostaa numeron 123, joka
-    on oletuksena tekstiä.
+    #Edellisen olisi pitänyt tulostaa numeron 123, joka on oletuksena tekstiä.
 
-    Voit kokeilla myös vaihtaa kohdan [0] esim. seuraavaksi [1]
-    ja testata mikä muuttuu
-    """
+    #Voit kokeilla myös vaihtaa kohdan [0] esim. seuraavaksi [1] ja testata mikä muuttuu
 
-if __name__ == "__main__":
-    main()
+if __name__ == "__main__": main()
